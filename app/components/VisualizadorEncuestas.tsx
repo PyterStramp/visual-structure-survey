@@ -1,6 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Papa from "papaparse";
+import { ResumenSoftware } from "./ResumenSoftware";
+import { SeguimientoDocentes } from "./SeguimientoDocentes";
+import { CargadorListaDocentes } from "./CargadorListaDocentes";
 
 // Definición de tipos para TypeScript
 export interface EncuestaCSV {
@@ -68,6 +71,52 @@ function VisualizadorEncuestasPage() {
   // Estado para mostrar detalles de una entrada específica
   const [entradaSeleccionada, setEntradaSeleccionada] =
     useState<Encuesta | null>(null);
+
+  const [showSoftwareModal, setShowSoftwareModal] = useState<boolean>(false);
+
+  const [showSeguimientoModal, setShowSeguimientoModal] =
+    useState<boolean>(false);
+
+  // Estado de lista docentes
+  const [listaCompletaDocentes, setListaCompletaDocentes] = useState<string[]>(
+    []
+  );
+  const [listaDocentesCargada, setListaDocentesCargada] =
+    useState<boolean>(false);
+
+  // Función para manejar la carga de la lista de docentes
+  const handleCargarListaDocentes = (docentes: string[]) => {
+    setListaCompletaDocentes(docentes);
+    setListaDocentesCargada(true);
+  };
+
+  // Función para ordenar los semestres en un orden específico
+  const ordenarSemestres = (semestresDesordenados: string[]): string[] => {
+    // Orden personalizado de semestres
+    const ordenSemestres = [
+      "SEMESTRE I",
+      "SEMESTRE II",
+      "SEMESTRE III",
+      "SEMESTRE IV",
+      "SEMESTRE V",
+      "SEMESTRE VI",
+      "COMPONENTE PROPEDEUTICO",
+      "OTRO",
+    ];
+
+    // Filtrar semestres conocidos según el orden predefinido
+    const semestresOrdenados = ordenSemestres.filter((semestre) =>
+      semestresDesordenados.includes(semestre)
+    );
+
+    // Añadir cualquier otro semestre que no esté en la lista predefinida al final
+    const otrosSemestres = semestresDesordenados.filter(
+      (semestre) => !ordenSemestres.includes(semestre)
+    );
+
+    // Combinar las listas
+    return [...semestresOrdenados, ...otrosSemestres];
+  };
 
   // Convertir CSV a objeto y transformar los datos
   const transformarDatosCSV = (datos: EncuestaCSV[]): Encuesta[] => {
@@ -137,7 +186,9 @@ function VisualizadorEncuestasPage() {
               ...new Set(datosTransformados.map((item) => item.nombre_docente)),
             ];
 
-            setSemestres(uniqueSemestres);
+            const semestresOrdenados = ordenarSemestres(uniqueSemestres);
+
+            setSemestres(semestresOrdenados);
             setAsignaturas(uniqueAsignaturas);
             setDocentes(uniqueDocentes);
 
@@ -320,16 +371,52 @@ function VisualizadorEncuestasPage() {
 
       {/* Panel de carga de archivo */}
       <div className="mb-6 bg-gray-50 p-4 rounded-lg shadow">
-        <h2 className="text-lg font-semibold mb-2">Cargar datos desde CSV</h2>
-        <p className="text-sm text-gray-600 mb-3">
-          Selecciona tu archivo CSV con los datos de las encuestas
-        </p>
-        <input
-          type="file"
-          accept=".csv"
-          onChange={cargarArchivoCSV}
-          className="border p-2 rounded w-full"
-        />
+        <h2 className="text-lg font-semibold mb-2">Cargar datos</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Cargador de CSV */}
+          <div>
+            <p className="text-sm text-gray-600 mb-3">
+              Selecciona tu archivo CSV con los datos de las encuestas
+            </p>
+            <div className="flex items-center">
+              <label className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded cursor-pointer border">
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={cargarArchivoCSV}
+                />
+                {archivoSubido ? (
+                  <p>Se ha subido con éxito el archivo</p>
+                ) : (
+                  <p>Sube la fuente de datos de la encuesta</p>
+                )}
+              </label>
+            </div>
+          </div>
+
+          {/* Cargador de lista de docentes */}
+          <div>
+            <p className="text-sm text-gray-600 mb-3">
+              Lista completa de docentes (confidencial)
+            </p>
+            <CargadorListaDocentes onCargarLista={handleCargarListaDocentes} />
+          </div>
+        </div>
+
+        {/* Mostrar mensaje de carga exitosa si ambos archivos están cargados */}
+        {archivoSubido && listaDocentesCargada && (
+          <div className="mt-4 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded">
+            <p className="text-sm">
+              <span className="font-medium">
+                ¡Archivos cargados correctamente!
+              </span>{" "}
+              CSV de encuestas y lista completa de docentes están listos para
+              análisis.
+            </p>
+          </div>
+        )}
       </div>
 
       {archivoSubido ? (
@@ -403,7 +490,7 @@ function VisualizadorEncuestasPage() {
             <div className="mt-4">
               <button
                 onClick={limpiarFiltros}
-                className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
+                className="bg-teal-200 hover:bg-teal-300 px-4 py-2 rounded"
               >
                 Limpiar filtros
               </button>
@@ -411,10 +498,68 @@ function VisualizadorEncuestasPage() {
           </div>
 
           {/* Resumen de resultados */}
-          <div className="mb-4">
+          <div className="mb-4 flex justify-between items-center">
             <p className="text-gray-700">
               Mostrando {datosFiltrados.length} de {encuestas.length} registros
             </p>
+            <div className="flex space-x-3">
+              {/* Botón para abrir el modal de resumen de software */}
+              <button
+                onClick={() => setShowSoftwareModal(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+                Ver resumen de software
+              </button>
+
+              {/* Botón para abrir el modal de seguimiento de docentes */}
+              <button
+                onClick={() => setShowSeguimientoModal(true)}
+                className={`${
+                  listaDocentesCargada
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-gray-400 cursor-not-allowed"
+                } text-white px-4 py-2 rounded flex items-center`}
+                disabled={!listaDocentesCargada}
+                title={
+                  !listaDocentesCargada
+                    ? "Carga primero la lista de docentes"
+                    : ""
+                }
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+                Seguimiento docentes
+                {!listaDocentesCargada && (
+                  <span className="ml-2 text-xs">(Requiere lista)</span>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Tabla de resultados */}
@@ -469,7 +614,7 @@ function VisualizadorEncuestasPage() {
                       <td className="py-2 px-4 border-b">
                         <button
                           onClick={() => verDetalles(entrada)}
-                          className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
+                          className="bg-teal-500 hover:bg-teal-600 text-white px-3 py-1 rounded text-sm"
                         >
                           Ver detalles
                         </button>
@@ -609,6 +754,21 @@ function VisualizadorEncuestasPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de resumen de software */}
+      <ResumenSoftware
+        encuestas={encuestas}
+        isOpen={showSoftwareModal}
+        onClose={() => setShowSoftwareModal(false)}
+      />
+
+      {/* Modal de seguimiento de docentes */}
+      <SeguimientoDocentes
+        encuestas={encuestas}
+        listaCompleta={listaCompletaDocentes}
+        isOpen={showSeguimientoModal}
+        onClose={() => setShowSeguimientoModal(false)}
+      />
     </div>
   );
 }
