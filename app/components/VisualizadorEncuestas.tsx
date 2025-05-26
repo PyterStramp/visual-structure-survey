@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Papa from "papaparse";
-import { ResumenSoftware } from "./ResumenSoftware";
+import { ResumenSoftware, PlanEstudios } from "./ResumenSoftware";
 import { SeguimientoDocentes } from "./SeguimientoDocentes";
 import { CargadorListaDocentes } from "./CargadorListaDocentes";
 
@@ -84,6 +84,10 @@ function VisualizadorEncuestasPage() {
   const [listaDocentesCargada, setListaDocentesCargada] =
     useState<boolean>(false);
 
+  const [planEstudios, setPlanEstudios] = useState<PlanEstudios | undefined>(
+    undefined
+  );
+
   // Función para manejar la carga de la lista de docentes
   const handleCargarListaDocentes = (docentes: string[]) => {
     setListaCompletaDocentes(docentes);
@@ -116,6 +120,29 @@ function VisualizadorEncuestasPage() {
 
     // Combinar las listas
     return [...semestresOrdenados, ...otrosSemestres];
+  };
+
+  const cargarPlanEstudios = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const archivo = e.target.files[0];
+    const lector = new FileReader();
+
+    lector.onload = (evento: ProgressEvent<FileReader>) => {
+      try {
+        if (!evento.target || !evento.target.result) {
+          throw new Error("Error al leer el archivo");
+        }
+
+        const contenido = evento.target.result.toString();
+        const planData = JSON.parse(contenido);
+        setPlanEstudios(planData);
+      } catch (err: any) {
+        setError("Error al procesar el plan de estudios: " + err.message);
+      }
+    };
+
+    lector.readAsText(archivo);
   };
 
   // Convertir CSV a objeto y transformar los datos
@@ -373,7 +400,7 @@ function VisualizadorEncuestasPage() {
       <div className="mb-6 bg-gray-50 p-4 rounded-lg shadow">
         <h2 className="text-lg font-semibold mb-2">Cargar datos</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Cargador de CSV */}
           <div>
             <p className="text-sm text-gray-600 mb-3">
@@ -387,13 +414,12 @@ function VisualizadorEncuestasPage() {
                   className="hidden"
                   onChange={cargarArchivoCSV}
                 />
-                {archivoSubido ? (
-                  <p>Se ha subido con éxito el archivo</p>
-                ) : (
-                  <p>Sube la fuente de datos de la encuesta</p>
-                )}
+                {archivoSubido ? "Encuesta cargada ✓" : "Cargar encuesta"}
               </label>
             </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Archivo CSV con los datos de la encuesta
+            </p>
           </div>
 
           {/* Cargador de lista de docentes */}
@@ -403,18 +429,151 @@ function VisualizadorEncuestasPage() {
             </p>
             <CargadorListaDocentes onCargarLista={handleCargarListaDocentes} />
           </div>
+
+          <div>
+            <p className="text-sm text-gray-600 mb-3">
+              Plan de estudios (JSON)
+            </p>
+            <div className="flex items-center">
+              <label className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded cursor-pointer border">
+                <input
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={cargarPlanEstudios}
+                />
+                {planEstudios ? "Plan cargado ✓" : "Cargar plan de estudios"}
+              </label>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Archivo JSON con la estructura curricular
+            </p>
+          </div>
         </div>
 
-        {/* Mostrar mensaje de carga exitosa si ambos archivos están cargados */}
-        {archivoSubido && listaDocentesCargada && (
-          <div className="mt-4 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded">
-            <p className="text-sm">
-              <span className="font-medium">
-                ¡Archivos cargados correctamente!
-              </span>{" "}
-              CSV de encuestas y lista completa de docentes están listos para
-              análisis.
-            </p>
+        {/* Mostrar mensaje de carga exitosa */}
+        {(archivoSubido || listaDocentesCargada || planEstudios) && (
+          <div className="mt-4 space-y-2">
+            {/* Estado de archivos cargados */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+              <div
+                className={`flex items-center p-2 rounded ${
+                  archivoSubido
+                    ? "bg-green-50 border border-green-200 text-green-700"
+                    : "bg-gray-50 border border-gray-200 text-gray-500"
+                }`}
+              >
+                <span className="mr-2">{archivoSubido ? "✓" : "⧖"}</span>
+                <span>CSV de encuestas</span>
+              </div>
+
+              <div
+                className={`flex items-center p-2 rounded ${
+                  listaDocentesCargada
+                    ? "bg-green-50 border border-green-200 text-green-700"
+                    : "bg-gray-50 border border-gray-200 text-gray-500"
+                }`}
+              >
+                <span className="mr-2">
+                  {listaDocentesCargada ? "✓" : "⧖"}
+                </span>
+                <span>Lista de docentes</span>
+              </div>
+
+              <div
+                className={`flex items-center p-2 rounded ${
+                  planEstudios
+                    ? "bg-green-50 border border-green-200 text-green-700"
+                    : "bg-gray-50 border border-gray-200 text-gray-500"
+                }`}
+              >
+                <span className="mr-2">{planEstudios ? "✓" : "⧖"}</span>
+                <span>Plan de estudios</span>
+              </div>
+            </div>
+
+            {/* Mensaje principal según el estado */}
+            {archivoSubido && listaDocentesCargada && planEstudios && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">✓</span>
+                  <div>
+                    <p className="font-medium">Sistema completo cargado</p>
+                    <p className="text-sm">
+                      Todos los archivos están listos. Ahora podrás acceder a
+                      análisis completos, seguimiento de docentes y vista
+                      jerárquica por períodos académicos.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {archivoSubido && listaDocentesCargada && !planEstudios && (
+              <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">✓</span>
+                  <div>
+                    <p className="font-medium">
+                      Archivos principales cargados
+                    </p>
+                    <p className="text-sm">
+                      CSV de encuestas y lista de docentes están listos.
+                      <span className="font-medium"> Opcional:</span> Carga el
+                      plan de estudios para análisis jerárquico por períodos.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {archivoSubido && !listaDocentesCargada && planEstudios && (
+              <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">⍻</span>
+                  <div>
+                    <p className="font-medium">¡Análisis académico listo!</p>
+                    <p className="text-sm">
+                      CSV de encuestas y plan de estudios cargados.
+                      <span className="font-medium"> Opcional:</span> Carga la
+                      lista de docentes para seguimiento de cobertura.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {archivoSubido && !listaDocentesCargada && !planEstudios && (
+              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">⍻</span>
+                  <div>
+                    <p className="font-medium">¡Análisis básico disponible!</p>
+                    <p className="text-sm">
+                      CSV de encuestas cargado. Puedes ver el resumen global de
+                      software.
+                      <span className="font-medium"> Recomendado:</span> Carga
+                      los archivos adicionales para análisis completos.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!archivoSubido && (listaDocentesCargada || planEstudios) && (
+              <div className="bg-orange-100 border border-orange-400 text-orange-700 px-4 py-3 rounded">
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">⍻</span>
+                  <div>
+                    <p className="font-medium">Archivos auxiliares cargados</p>
+                    <p className="text-sm">
+                      <span className="font-medium">Requerido:</span> Carga el
+                      CSV de encuestas para comenzar el análisis.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -604,12 +763,12 @@ function VisualizadorEncuestasPage() {
                       <td className="py-2 px-4 border-b truncate max-w-xs">
                         {entrada.software_windows !== "Ninguno"
                           ? entrada.software_windows
-                          : "❌"}
+                          : "✗"}
                       </td>
                       <td className="py-2 px-4 border-b truncate max-w-xs">
                         {entrada.software_ubuntu !== "Ninguno"
                           ? entrada.software_ubuntu
-                          : "❌"}
+                          : "✗"}
                       </td>
                       <td className="py-2 px-4 border-b">
                         <button
@@ -708,19 +867,19 @@ function VisualizadorEncuestasPage() {
                   <span className="font-medium">Windows:</span>{" "}
                   {entradaSeleccionada.software_windows !== "Ninguno"
                     ? entradaSeleccionada.software_windows
-                    : "❌"}
+                    : "✗"}
                 </p>
                 <p>
                   <span className="font-medium">Ubuntu:</span>{" "}
                   {entradaSeleccionada.software_ubuntu !== "Ninguno"
                     ? entradaSeleccionada.software_ubuntu
-                    : "❌"}
+                    : "✗"}
                 </p>
                 <p>
                   <span className="font-medium">Software recomendado:</span>{" "}
                   {entradaSeleccionada.software_recomendado !== "Ninguno"
                     ? entradaSeleccionada.software_recomendado
-                    : "❌"}
+                    : "✗"}
                 </p>
               </div>
 
@@ -732,13 +891,13 @@ function VisualizadorEncuestasPage() {
                   <span className="font-medium">Dispositivos adicionales:</span>{" "}
                   {entradaSeleccionada.dispositivos_adicionales !== "Ninguno"
                     ? entradaSeleccionada.dispositivos_adicionales
-                    : "❌"}
+                    : "✗"}
                 </p>
                 <p>
                   <span className="font-medium">Recomendaciones:</span>{" "}
                   {entradaSeleccionada.recomendaciones !== "Ninguna"
                     ? entradaSeleccionada.recomendaciones
-                    : "❌"}
+                    : "✗"}
                 </p>
               </div>
             </div>
@@ -758,6 +917,7 @@ function VisualizadorEncuestasPage() {
       {/* Modal de resumen de software */}
       <ResumenSoftware
         encuestas={encuestas}
+        planEstudios={planEstudios}
         isOpen={showSoftwareModal}
         onClose={() => setShowSoftwareModal(false)}
       />

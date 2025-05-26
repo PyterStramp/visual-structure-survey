@@ -79,14 +79,8 @@ export function CargadorListaDocentes({ onCargarLista, className = '' }: Cargado
             className="hidden" 
             onChange={manejarCambioArchivo}
           />
-          Seleccionar lista de docentes
+          {archivoSeleccionado ? "Lista cargada ✓" : "Seleccionar lista de docentes"}
         </label>
-        
-        {archivoSeleccionado && (
-          <span className="ml-3 text-sm text-gray-600">
-            {nombreArchivo}
-          </span>
-        )}
       </div>
       
       {error && (
