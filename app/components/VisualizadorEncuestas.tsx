@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import { ResumenSoftware, PlanEstudios } from "./ResumenSoftware";
 import { SeguimientoDocentes } from "./SeguimientoDocentes";
 import { CargadorListaDocentes } from "./CargadorListaDocentes";
+import { ExportadorPDF } from "./ExportadorPDF";
 
 // Definición de tipos para TypeScript
 export interface EncuestaCSV {
@@ -87,6 +88,8 @@ function VisualizadorEncuestasPage() {
   const [planEstudios, setPlanEstudios] = useState<PlanEstudios | undefined>(
     undefined
   );
+
+  const [showExportModal, setShowExportModal] = useState<boolean>(false);
 
   // Función para manejar la carga de la lista de docentes
   const handleCargarListaDocentes = (docentes: string[]) => {
@@ -474,9 +477,7 @@ function VisualizadorEncuestasPage() {
                     : "bg-gray-50 border border-gray-200 text-gray-500"
                 }`}
               >
-                <span className="mr-2">
-                  {listaDocentesCargada ? "✓" : "⧖"}
-                </span>
+                <span className="mr-2">{listaDocentesCargada ? "✓" : "⧖"}</span>
                 <span>Lista de docentes</span>
               </div>
 
@@ -514,9 +515,7 @@ function VisualizadorEncuestasPage() {
                 <div className="flex items-center">
                   <span className="text-lg mr-2">✓</span>
                   <div>
-                    <p className="font-medium">
-                      Archivos principales cargados
-                    </p>
+                    <p className="font-medium">Archivos principales cargados</p>
                     <p className="text-sm">
                       CSV de encuestas y lista de docentes están listos.
                       <span className="font-medium"> Opcional:</span> Carga el
@@ -717,6 +716,32 @@ function VisualizadorEncuestasPage() {
                 {!listaDocentesCargada && (
                   <span className="ml-2 text-xs">(Requiere lista)</span>
                 )}
+              </button>
+
+              {/*Exportar como PDF */}
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center"
+                disabled={!archivoSubido}
+                title={
+                  !archivoSubido ? "Carga primero el CSV de encuestas" : ""
+                }
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Exportar PDF
               </button>
             </div>
           </div>
@@ -928,6 +953,14 @@ function VisualizadorEncuestasPage() {
         listaCompleta={listaCompletaDocentes}
         isOpen={showSeguimientoModal}
         onClose={() => setShowSeguimientoModal(false)}
+      />
+
+      <ExportadorPDF
+        encuestas={encuestas}
+        listaDocentes={listaCompletaDocentes}
+        planEstudios={planEstudios}
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
       />
     </div>
   );
